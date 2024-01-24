@@ -76,9 +76,3 @@ create table people.PersonenAdressen
     foreign key (adresseId) references locations.Adresse(id),
     foreign key (typeId) references locations.AdressenTyp(id)
 )
-
-ALTER TABLE  people.PersonenAdressen
-ADD CONSTRAINT FK_personenID FOREIGN KEY (personId) references people.Personen(id);
-
-ALTER TABLE  people.PersonenAdressen
-ADD CONSTRAINT FK_adressenID FOREIGN KEY (adresseId) references locations.Adresse(id);
