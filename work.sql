@@ -154,3 +154,5 @@ SET
 
 -- Execute the dynamic pivot query
 EXEC sp_executesql @sql;
+
+
