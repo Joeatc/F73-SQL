@@ -1,10 +1,14 @@
+use master;
+
+create database myTestDb;
+GO
+
 use myTestDb;
 GO
 
-CREATE PROCEDURE GetRandomDateBetween
-    @StartDate DATE,
-    @EndDate DATE,
-    @Result DATE OUTPUT
+CREATE PROCEDURE GetRandomDateBetween @StartDate DATE,
+                                      @EndDate DATE,
+                                      @Result DATE OUTPUT
 AS
 BEGIN
     DECLARE @RandomDays INT
@@ -19,19 +23,18 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE CreateSchemaIfNotExists
-    @SchemaName NVARCHAR(128)
+CREATE PROCEDURE CreateSchemaIfNotExists @SchemaName NVARCHAR(128)
 AS
 BEGIN
     -- Check if the schema already exists
     IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = @SchemaName)
-    BEGIN
-        -- Construct the SQL statement
-        DECLARE @SQL NVARCHAR(MAX) = N'CREATE SCHEMA ' + QUOTENAME(@SchemaName);
+        BEGIN
+            -- Construct the SQL statement
+            DECLARE @SQL NVARCHAR(MAX) = N'CREATE SCHEMA ' + QUOTENAME(@SchemaName);
 
-        -- Execute the SQL statement
-        EXEC sp_executesql @SQL;
-    END
+            -- Execute the SQL statement
+            EXEC sp_executesql @SQL;
+        END
 END;
 GO
 
@@ -106,11 +109,11 @@ AS
 BEGIN
     create table locations.Ort
     (
-        id    uniqueidentifier default newid() primary key,
-        ort   NVARCHAR(100),
-        place NVARCHAR(100),
-        plz   NVARCHAR(5),
-        zip   NVARCHAR(10),
+        id         uniqueidentifier default newid() primary key,
+        ort        NVARCHAR(100),
+        place      NVARCHAR(100),
+        plz        NVARCHAR(5),
+        zip        NVARCHAR(10),
         bundesland NVARCHAR(50)
     )
 END;
@@ -269,9 +272,9 @@ CREATE PROCEDURE people.LoadStaticDataIntoGeschlecht
 AS
 BEGIN
     INSERT INTO people.Geschlecht (geschlecht, gender)
-    VALUES ('weiblich', 'female')
-         ,('männlich', 'male')
-         ,('divers', 'diverse');
+    VALUES (N'weiblich', N'female')
+         , (N'männlich', N'male')
+         , (N'divers', N'diverse');
 END;
 GO
 
@@ -300,20 +303,22 @@ BEGIN
                 FROM dbo.temp_names
                 ORDER BY newId()),
          vn AS (SELECT TOP (1000) tn.vorname, G.id AS geschlechtId
-                FROM dbo.temp_names tn JOIN Geschlecht G ON G.gender = tn.gender
+                FROM dbo.temp_names tn
+                         JOIN Geschlecht G ON G.gender = tn.gender
                 ORDER BY newId())
-    INSERT INTO people.Personen (vorname, name, geschlechtId)
+    INSERT
+    INTO people.Personen (vorname, name, geschlechtId)
     SELECT vn.vorname, nn.nachname, vn.geschlechtId
-    FROM nn, vn;
+    FROM nn,
+         vn;
 
 END;
 GO
 
-CREATE PROCEDURE people.ChangeGender
-    @number INT,
-    @percent NUMERIC,
-    @ID uniqueidentifier,
-    @ID2 uniqueidentifier
+CREATE PROCEDURE people.ChangeGender @number INT,
+                                     @percent NUMERIC,
+                                     @ID uniqueidentifier,
+                                     @ID2 uniqueidentifier
 AS
 BEGIN
 
@@ -321,7 +326,8 @@ BEGIN
     from people.Personen
     where geschlechtId = @ID;
 
-    update x set geschlechtID = @ID2
+    update x
+    set geschlechtID = @ID2
     from (select TOP (@number) geschlechtId from people.Personen where geschlechtId = @ID order by NEWID()) x;
 
 END;
@@ -351,8 +357,9 @@ CREATE PROCEDURE people.GenerateRandomBirthdaysForAge18_70
 AS
 BEGIN
 
-    CREATE TABLE #temp_birthdays (
-        id UNIQUEIDENTIFIER,
+    CREATE TABLE #temp_birthdays
+    (
+        id       UNIQUEIDENTIFIER,
         birthday DATE
     )
 
@@ -360,27 +367,29 @@ BEGIN
     DECLARE @RunningId UNIQUEIDENTIFIER;
     DECLARE @StartDate DATE;
     DECLARE @EndDate DATE;
-    SET @StartDate = DATEADD(YEAR,-70,GETDATE());
-    SET @EndDate = DATEADD(YEAR,-18,GETDATE());
+    SET @StartDate = DATEADD(YEAR, -70, GETDATE());
+    SET @EndDate = DATEADD(YEAR, -18, GETDATE());
 
     DECLARE cur_Person CURSOR FOR
-    SELECT id FROM people.Personen;
+        SELECT id FROM people.Personen;
 
     OPEN cur_Person;
     FETCH NEXT FROM cur_Person INTO @RunningId;
 
     WHILE @@FETCH_STATUS = 0
-    BEGIN
-        EXEC GetRandomDateBetween @StartDate, @EndDate, @RandomBirthday OUTPUT;
-        INSERT INTO #temp_birthdays (id, birthday) VALUES (@RunningId,@RandomBirthday);
-        FETCH NEXT FROM cur_Person INTO @RunningId;
-    END
+        BEGIN
+            EXEC GetRandomDateBetween @StartDate, @EndDate, @RandomBirthday OUTPUT;
+            INSERT INTO #temp_birthdays (id, birthday) VALUES (@RunningId, @RandomBirthday);
+            FETCH NEXT FROM cur_Person INTO @RunningId;
+        END
 
     CLOSE cur_Person;
     DEALLOCATE cur_Person;
 
-    UPDATE p SET p.geburtstag = b.birthday
-    FROM people.Personen p JOIN #temp_birthdays b ON p.id = b.id;
+    UPDATE p
+    SET p.geburtstag = b.birthday
+    FROM people.Personen p
+             JOIN #temp_birthdays b ON p.id = b.id;
 
 END;
 GO
@@ -389,8 +398,8 @@ CREATE PROCEDURE locations.GenerateOrte
 AS
 BEGIN
     INSERT INTO locations.Ort (ort, plz, bundesland)
-        SELECT ort, plz, bundesland
-        FROM dbo.temp_orte;
+    SELECT ort, plz, bundesland
+    FROM dbo.temp_orte;
 END;
 GO
 
@@ -401,40 +410,55 @@ BEGIN
     SELECT @personenAnzahl = COUNT(id)
     FROM people.Personen;
 
-    CREATE TABLE #numbers ( Number INT NOT NULL PRIMARY KEY ) ;
+    CREATE TABLE #numbers
+    (
+        Number INT NOT NULL PRIMARY KEY
+    );
 
-    WITH
-    L0 AS ( SELECT 1 AS C UNION ALL SELECT 1) ,
-    L1 AS ( SELECT 1 AS C FROM L0 AS A , L0 AS B ) ,
-    L2 AS ( SELECT 1 AS C FROM L1 AS A , L1 AS B ) ,
-    L3 AS ( SELECT 1 AS C FROM L2 AS A , L2 AS B ) ,
-    Nums AS ( SELECT ROW_NUMBER () OVER ( ORDER BY ( SELECT NULL ) ) AS N FROM L3 )
-    INSERT INTO #numbers SELECT N FROM Nums WHERE N <= 100;
+    WITH L0 AS (SELECT 1 AS C UNION ALL SELECT 1),
+         L1 AS (SELECT 1 AS C
+                FROM L0 AS A,
+                     L0 AS B),
+         L2 AS (SELECT 1 AS C
+                FROM L1 AS A,
+                     L1 AS B),
+         L3 AS (SELECT 1 AS C
+                FROM L2 AS A,
+                     L2 AS B),
+         Nums AS (SELECT ROW_NUMBER() OVER ( ORDER BY (SELECT NULL) ) AS N FROM L3)
+    INSERT
+    INTO #numbers
+    SELECT N
+    FROM Nums
+    WHERE N <= 100;
 
     WITH street AS (SELECT CONCAT(strasse, ' ', suffix) AS Strasse
                     FROM dbo.strassen)
-    INSERT INTO locations.Adresse (ortId, strasse, hausnummer)
-    SELECT TOP (@personenAnzahl) O.id, Strasse, (SELECT TOP(1) Number FROM #numbers ORDER BY newid()) as HNr
-    FROM locations.Ort O, street
+    INSERT
+    INTO locations.Adresse (ortId, strasse, hausnummer)
+    SELECT TOP (@personenAnzahl) O.id, Strasse, (SELECT TOP (1) Number FROM #numbers ORDER BY newid()) as HNr
+    FROM locations.Ort O,
+         street
     ORDER BY NEWID();
 END;
 GO
 
-CREATE PROCEDURE people.InsertRandomPersonenAdressen
-    @number INT,
-    @type nvarchar = NULL
+CREATE PROCEDURE people.InsertRandomPersonenAdressen @number INT,
+                                                     @type nvarchar = NULL
 AS
 BEGIN
 
     WITH p AS (SELECT top (@number) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS id, id AS pid
-           FROM people.Personen
-           WHERE (ABS(CHECKSUM(id)) % 100) < 20),
-     a as (SELECT top (@number) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS id, id AS aid
-           FROM locations.Adresse
-           WHERE (ABS(CHECKSUM(id)) % 100) < 6)
-    INSERT INTO people.PersonenAdressen (personId, adresseId, typeId)
+               FROM people.Personen
+               WHERE (ABS(CHECKSUM(id)) % 100) < 20),
+         a as (SELECT top (@number) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS id, id AS aid
+               FROM locations.Adresse
+               WHERE (ABS(CHECKSUM(id)) % 100) < 6)
+    INSERT
+    INTO people.PersonenAdressen (personId, adresseId, typeId)
     SELECT pid, aid, IIF(@type IS NULL, NULL, (SELECT id FROM locations.AdressenTyp WHERE adressenTyp = @type))
-    FROM p JOIN a ON p.id = a.id;
+    FROM p
+             JOIN a ON p.id = a.id;
 
 END;
 GO
@@ -449,13 +473,57 @@ BEGIN
     update people.PersonenAdressen
     set typeId = (select top (1) id from locations.AdressenTyp where adressenTyp = N'geschäftlich')
     where personId in
-      (select personId from people.PersonenAdressen group by personId having count(personId) > 1)
+          (select personId from people.PersonenAdressen group by personId having count(personId) > 1)
       and typeId IS NULL;
 
     -- Denke über den möglichen Zustand der Tabelle nach. Welche Auswirkungen können die einzelnen
     -- Schritte haben?
     -- Was sollte der Zweck der Prozedur sein? 
 
+END;
+GO
+
+CREATE PROCEDURE people.GeneriereTestDatumPersonenAdressen
+AS
+BEGIN
+    DECLARE @MinDate DATE = '1980-01-01'; -- Adjust the start date as needed
+    DECLARE @MaxDate DATE = GETDATE();
+
+    CREATE TABLE #TempDates
+    (
+        Id        UNIQUEIDENTIFIER,
+        RandomVon DATETIME2(7),
+        RandomBis DATETIME2(7)
+    );
+
+    INSERT INTO #TempDates (Id, RandomVon, RandomBis)
+    SELECT Id,
+           DATEADD(DAY, ROUND(RAND(CHECKSUM(NEWID())) * DATEDIFF(DAY, @MinDate, @MaxDate), 0), @MinDate),
+           DATEADD(DAY, ROUND(RAND(CHECKSUM(NEWID())) * DATEDIFF(DAY, @MinDate, @MaxDate), 0), @MinDate)
+    FROM people.PersonenAdressen;
+
+    UPDATE pa
+    SET pa.von = CASE
+                     WHEN td.RandomVon < td.RandomBis THEN td.RandomVon
+                     ELSE td.RandomBis
+        END,
+        pa.bis = CASE
+                     WHEN td.RandomVon < td.RandomBis THEN td.RandomBis
+                     ELSE td.RandomVon
+            END
+    FROM people.PersonenAdressen pa
+             INNER JOIN
+         #TempDates td ON pa.Id = td.Id;
+
+END;
+GO
+
+CREATE PROCEDURE dbo.RemoveUnusedTables
+AS
+BEGIN
+    DROP TABLE dbo.strassen;
+    DROP TABLE dbo.temp_names;
+    DROP TABLE dbo.temp_orte;
 END;
 GO
 
@@ -469,11 +537,12 @@ BEGIN
     EXEC locations.GenerateOrte;
     EXEC locations.GenerateAddress;
     EXEC people.GeneratePersonenAdressen;
+    EXEC people.GeneriereTestDatumPersonenAdressen;
 END;
 GO
 
 EXEC dbo.LoadStaticDataIntoTables;
 EXEC dbo.LoadCsvDataIntoTemporaryTables;
 EXEC dbo.GenerateDatabaseData;
+EXEC dbo.RemoveUnusedTables;
 GO
-

@@ -10,9 +10,9 @@
     ```sql
     USE master;
     GO
-    ALTER DATABASE [YourDatabaseName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    ALTER DATABASE [myTestDb] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
     GO
-    EXEC sp_detach_db '[YourDatabaseName]';
+    EXEC sp_detach_db [myTestDb];
     ```
 
 3. **Copy the `.mdf` and `.ldf` Files**:
@@ -21,7 +21,7 @@
 4. **Attach the Database in the New SQL Server**:
     - On the new SQL Server instance, you can attach the database using SSMS or T-SQL command:
     ```sql
-    CREATE DATABASE [YourDatabaseName] ON
+    CREATE DATABASE [myTestDb] ON
         (FILENAME = 'PathTo\YourDatabaseName.mdf'),
         (FILENAME = 'PathTo\YourDatabaseName_log.ldf')
         FOR ATTACH;
@@ -70,7 +70,7 @@ for point-in-time recovery. Use the following T-SQL command to back up the log:
 
 ```sql
 BACKUP
-LOG [YourDatabaseName] TO DISK = 'PathToBackup\YourLogBackup.bak';
+LOG [myTestDb] TO DISK = 'PathToBackup\YourLogBackup.bak';
 ```
 
 ### 3. Shrink the Transaction Log
@@ -94,7 +94,7 @@ after the transaction is committed, thus keeping the log file size small.
 
 ```sql
 ALTER
-DATABASE [YourDatabaseName] SET RECOVERY SIMPLE;
+DATABASE [myTestDb] SET RECOVERY SIMPLE;
 ```
 
 ### 5. Regular Maintenance
