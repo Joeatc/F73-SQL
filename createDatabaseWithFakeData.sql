@@ -59,7 +59,7 @@ BEGIN
     DROP TABLE IF EXISTS locations.AdressenTyp;
     DROP TABLE IF EXISTS locations.Ort;
     DROP TABLE IF EXISTS locations.Land;
-    DROP TABLE IF EXISTS dbo.strassen;
+    DROP TABLE IF EXISTS dbo.temp_strassen;
     DROP TABLE IF EXISTS dbo.temp_orte;
     DROP TABLE IF EXISTS dbo.temp_names;
 END;
@@ -193,14 +193,14 @@ GO
 CREATE PROCEDURE locations.LoadTemporaryTableStrassen
 AS
 BEGIN
-    create table dbo.strassen
+    create table dbo.temp_strassen
     (
         id      int,
         strasse nvarchar(40),
         suffix  nvarchar(20)
     )
 
-    BULK INSERT dbo.strassen
+    BULK INSERT dbo.temp_strassen
         FROM '/var/opt/mssql/Strassen.csv'
         WITH (
         FIELDTERMINATOR = ',',
@@ -433,7 +433,7 @@ BEGIN
     WHERE N <= 100;
 
     WITH street AS (SELECT CONCAT(strasse, ' ', suffix) AS Strasse
-                    FROM dbo.strassen)
+                    FROM dbo.temp_strassen)
     INSERT
     INTO locations.Adresse (ortId, strasse, hausnummer)
     SELECT TOP (@personenAnzahl) O.id, Strasse, (SELECT TOP (1) Number FROM #numbers ORDER BY newid()) as HNr
@@ -521,7 +521,7 @@ GO
 CREATE PROCEDURE dbo.RemoveUnusedTables
 AS
 BEGIN
-    DROP TABLE dbo.strassen;
+    DROP TABLE dbo.temp_strassen;
     DROP TABLE dbo.temp_names;
     DROP TABLE dbo.temp_orte;
 END;
