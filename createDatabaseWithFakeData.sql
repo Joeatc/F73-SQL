@@ -512,8 +512,7 @@ BEGIN
                      ELSE td.RandomVon
             END
     FROM people.PersonenAdressen pa
-             INNER JOIN
-         #TempDates td ON pa.Id = td.Id;
+    INNER JOIN #TempDates td ON pa.Id = td.Id;
 
 END;
 GO
